@@ -1,0 +1,24 @@
+# Environments
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Data, models, run outputs
+data/
+checkpoints/
+runs/
+*.pt
+*.pth
+*.onnx
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# Regenerable per-image EDA table (large)
+reports/eda/image_stats.csv

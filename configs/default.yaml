@@ -1,0 +1,53 @@
+# food-vision configuration: the single place to change classes and subset sizes.
+# Relative paths are resolved against the current working directory (run from repo root).
+
+seed: 42
+
+data:
+  root: data                 # Food-101 is downloaded to <root>/food-101 (~5 GB)
+  splits_dir: data/splits    # CSV manifests of the sampled subset
+  reports_dir: reports       # EDA / evaluation outputs
+
+  # Any subset of the 101 Food-101 class names (validated against meta/classes.txt).
+  # Labels are assigned in sorted order, so the order here does not matter.
+  classes:
+    # Indian / South-Asian relevant
+    - samosa
+    - chicken_curry
+    - fried_rice
+    - dumplings          # visually close to momos
+    - omelette
+    - spring_rolls
+    # Common dishes
+    - pizza
+    - hamburger
+    - french_fries
+    - sushi
+    - ramen
+    - caesar_salad
+    - pancakes
+    - waffles
+    - donuts
+    # Deliberately confusable pairs (useful for error analysis)
+    - steak
+    - filet_mignon
+    - ice_cream
+    - frozen_yogurt
+    - chocolate_cake
+
+  # Images per class. train+val are drawn (disjointly) from the official Food-101
+  # train split (750/class); test from the official test split (250/class).
+  # null = take everything available (for val: 10% of the official train images).
+  train_per_class: 300
+  val_per_class: 75
+  test_per_class: 100
+
+  # Images removed from every split (Food-101 ids, no extension). Found by scripts/eda.py:
+  exclude:
+    - omelette/2619753     # byte-identical to pancakes/2619752; photo shows both dishes
+    - pancakes/2619752
+    - dumplings/180290     # byte-identical to dumplings/167000 (train/val leak)
+
+  image_size: 224
+  batch_size: 32
+  num_workers: 4

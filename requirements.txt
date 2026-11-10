@@ -1,0 +1,9 @@
+# Phase 1: data & EDA (later phases append to this file)
+torch>=2.9
+torchvision>=0.24
+numpy>=2.0
+pillow>=11.0
+pyyaml>=6.0
+pandas>=2.2
+matplotlib>=3.9
+tqdm>=4.66

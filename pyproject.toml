@@ -1,0 +1,12 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "food-vision"
+version = "0.1.0"
+description = "Food recognition, nutritional insights and meal recording: CNN vs ViT vs zero-shot CLIP on Food-101."
+requires-python = ">=3.10"
+
+[tool.setuptools.packages.find]
+where = ["src"]
