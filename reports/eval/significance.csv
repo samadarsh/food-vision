@@ -1,0 +1,4 @@
+model_a,model_b,top1_a,top1_b,only_a_correct,only_b_correct,p_value
+cnn,vit,0.905,0.9205,67,98,0.0192
+cnn,clip,0.905,0.927,78,122,0.0023
+vit,clip,0.9205,0.927,81,94,0.3644

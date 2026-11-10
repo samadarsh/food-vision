@@ -10,3 +10,5 @@ tqdm>=4.66
 # Phase 2: models
 timm>=1.0
 open_clip_torch>=3.0
+# Phase 3: evaluation
+tabulate>=0.9

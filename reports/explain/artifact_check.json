@@ -1,0 +1,29 @@
+[
+  {
+    "layer": 5,
+    "num_images": 100,
+    "top_k": 5,
+    "median_max_over_median_norm": 5.646961688995361,
+    "mean_topk_overlap": 0.628,
+    "chance_topk_overlap": 0.025510204081632654,
+    "mean_corr_rollout_vs_norm": 0.5780911593756071
+  },
+  {
+    "layer": 8,
+    "num_images": 100,
+    "top_k": 5,
+    "median_max_over_median_norm": 11.395997524261475,
+    "mean_topk_overlap": 0.64,
+    "chance_topk_overlap": 0.025510204081632654,
+    "mean_corr_rollout_vs_norm": 0.583927967938369
+  },
+  {
+    "layer": 11,
+    "num_images": 100,
+    "top_k": 5,
+    "median_max_over_median_norm": 4.104926109313965,
+    "mean_topk_overlap": 0.63,
+    "chance_topk_overlap": 0.025510204081632654,
+    "mean_corr_rollout_vs_norm": 0.4871700738312259
+  }
+]

@@ -1,0 +1,17 @@
+index,true,pred,pred_prob,true_prob
+216,chocolate_cake,ice_cream,0.9808,0.0025
+1103,omelette,pancakes,0.9645,0.0027
+1040,ice_cream,frozen_yogurt,0.9434,0.0093
+1560,samosa,caesar_salad,0.942,0.0048
+1716,steak,filet_mignon,0.9383,0.0136
+1792,steak,filet_mignon,0.9374,0.0146
+1777,steak,filet_mignon,0.9371,0.002
+1814,sushi,spring_rolls,0.9362,0.0171
+1244,pancakes,omelette,0.9361,0.0019
+761,fried_rice,omelette,0.9359,0.0181
+598,filet_mignon,chocolate_cake,0.9257,0.0146
+144,chicken_curry,ramen,0.9231,0.0041
+1068,ice_cream,chocolate_cake,0.9207,0.0012
+1076,ice_cream,waffles,0.9139,0.002
+1782,steak,filet_mignon,0.9105,0.0312
+594,filet_mignon,steak,0.9042,0.0062

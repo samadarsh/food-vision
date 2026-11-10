@@ -1,0 +1,11 @@
+class_a,class_b,a_as_b,b_as_a,total
+filet_mignon,steak,27,15,42
+frozen_yogurt,ice_cream,7,25,32
+chocolate_cake,ice_cream,7,1,8
+samosa,spring_rolls,1,5,6
+ice_cream,waffles,1,3,4
+omelette,pancakes,1,2,3
+pancakes,waffles,1,2,3
+caesar_salad,samosa,0,2,2
+caesar_salad,steak,1,1,2
+chicken_curry,fried_rice,0,2,2

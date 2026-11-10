@@ -1,0 +1,4 @@
+key,model,top1,top5,macro_f1,errors,params_total,params_inference,mps_mean_ms,mps_p95_ms,cpu_mean_ms,cpu_p95_ms
+cnn,EfficientNet-B0 (fine-tuned),0.9045,0.983,0.9047,190,4033168.0,4033168.0,4.9544,5.1999,102.5091,103.5515
+vit,ViT-S/16 (fine-tuned),0.9205,0.9925,0.92,159,21673364.0,21673364.0,6.6851,6.8529,13.7143,13.981
+clip,CLIP ViT-B/32 (zero-shot),0.927,0.9965,0.9271,146,151277313.0,87849216.0,9.0284,9.1608,21.0181,21.6244
