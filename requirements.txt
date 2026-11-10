@@ -12,3 +12,7 @@ timm>=1.0
 open_clip_torch>=3.0
 # Phase 3: evaluation
 tabulate>=0.9
+# Notebooks
+nbformat>=5.10
+nbconvert>=7.16
+ipykernel>=6.29
