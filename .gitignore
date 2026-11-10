@@ -23,3 +23,7 @@ runs/**/*.pt
 
 # Regenerable per-image EDA table (large)
 reports/eda/image_stats.csv
+
+# Colab notebook outputs
+runs_colab/
+reports_colab/

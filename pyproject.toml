@@ -13,3 +13,7 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 food_vision = ["resources/*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
