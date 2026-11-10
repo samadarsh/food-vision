@@ -1,0 +1,13 @@
+{
+  "top1": 0.9205,
+  "top5": 0.9925,
+  "num_test_images": 2000,
+  "model": "vit",
+  "arch": "vit_small_patch16_224.augreg_in21k_ft_in1k",
+  "params": 21673364,
+  "best_epoch": 5,
+  "best_val_top1": 0.8866666666666667,
+  "epochs_trained": 9,
+  "train_minutes": 12.2,
+  "device": "mps"
+}

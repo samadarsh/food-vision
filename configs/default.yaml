@@ -51,3 +51,34 @@ data:
   image_size: 224
   batch_size: 32
   num_workers: 4
+
+# --------------------------------------------------------------------------- Phase 2
+train:
+  epochs: 15
+  warmup_epochs: 1
+  label_smoothing: 0.1
+  grad_clip: 1.0
+  patience: 4              # early stopping on val top-1
+  amp: true                # fp16 autocast + GradScaler on MPS/CUDA; off on CPU
+  device: auto             # auto = mps -> cuda -> cpu
+  runs_dir: runs           # runs/<model>/{metrics.csv, best.pt, test_metrics.json, ...}
+
+models:
+  cnn:
+    arch: efficientnet_b0  # torchvision: efficientnet_b0 | resnet50
+    lr: 1.0e-3
+    weight_decay: 0.01
+  vit:
+    # timm name. Larger alternative (better on a CUDA GPU / Colab):
+    #   vit_base_patch16_224.augreg2_in21k_ft_in1k
+    arch: vit_small_patch16_224.augreg_in21k_ft_in1k
+    lr: 1.0e-4
+    weight_decay: 0.05
+  clip:                    # zero-shot, no training
+    arch: ViT-B-32
+    pretrained: laion2b_s34b_b79k
+    templates:             # text embeddings are averaged over these prompts
+      - "a photo of {}, a type of food."
+      - "a close-up photo of {}, a dish."
+      - "a photo of a plate of {}."
+      - "{}, served at a restaurant."

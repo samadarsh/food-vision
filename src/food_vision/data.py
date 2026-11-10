@@ -256,9 +256,17 @@ class FoodDataset(Dataset):
         return img, s.label
 
 
-def build_transforms(image_size: int = 224, train: bool = False) -> T.Compose:
-    """Training augmentation or deterministic eval preprocessing (ImageNet normalisation)."""
-    normalize = T.Normalize(IMAGENET_MEAN, IMAGENET_STD)
+def build_transforms(
+    image_size: int = 224,
+    train: bool = False,
+    mean: tuple[float, ...] = IMAGENET_MEAN,
+    std: tuple[float, ...] = IMAGENET_STD,
+) -> T.Compose:
+    """Training augmentation or deterministic eval preprocessing.
+
+    `mean`/`std` default to ImageNet; pass the model's own values (e.g. timm ViTs use 0.5).
+    """
+    normalize = T.Normalize(mean, std)
     if train:
         return T.Compose(
             [
@@ -292,14 +300,18 @@ def build_datasets(
 
 
 def build_dataloaders(
-    datasets: dict[str, FoodDataset], cfg: Config, device: torch.device, generator: torch.Generator
+    datasets: dict[str, FoodDataset],
+    cfg: Config,
+    device: torch.device,
+    generator: torch.Generator,
+    batch_size: int | None = None,
 ) -> dict[str, DataLoader]:
     """DataLoaders; only train is shuffled. pin_memory only helps on CUDA."""
     d = cfg.data
     return {
         s: DataLoader(
             ds,
-            batch_size=d.batch_size,
+            batch_size=batch_size or d.batch_size,
             shuffle=(s == "train"),
             num_workers=d.num_workers,
             pin_memory=device.type == "cuda",

@@ -1,0 +1,19 @@
+{
+  "top1": 0.927,
+  "top5": 0.9965,
+  "num_test_images": 2000,
+  "model": "clip",
+  "arch": "ViT-B-32 (laion2b_s34b_b79k)",
+  "params": 151277313,
+  "zero_shot": true,
+  "templates": [
+    "a photo of {}, a type of food.",
+    "a close-up photo of {}, a dish.",
+    "a photo of a plate of {}.",
+    "{}, served at a restaurant."
+  ],
+  "val_top1": 0.8973333333333333,
+  "val_top5": 0.9853333333333333,
+  "minutes": 0.3,
+  "device": "mps"
+}

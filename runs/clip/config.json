@@ -1,0 +1,77 @@
+{
+  "data": {
+    "classes": [
+      "samosa",
+      "chicken_curry",
+      "fried_rice",
+      "dumplings",
+      "omelette",
+      "spring_rolls",
+      "pizza",
+      "hamburger",
+      "french_fries",
+      "sushi",
+      "ramen",
+      "caesar_salad",
+      "pancakes",
+      "waffles",
+      "donuts",
+      "steak",
+      "filet_mignon",
+      "ice_cream",
+      "frozen_yogurt",
+      "chocolate_cake"
+    ],
+    "root": "data",
+    "splits_dir": "data/splits",
+    "reports_dir": "reports",
+    "train_per_class": 300,
+    "val_per_class": 75,
+    "test_per_class": 100,
+    "image_size": 224,
+    "batch_size": 32,
+    "num_workers": 4,
+    "exclude": [
+      "omelette/2619753",
+      "pancakes/2619752",
+      "dumplings/180290"
+    ]
+  },
+  "seed": 42,
+  "train": {
+    "epochs": 15,
+    "warmup_epochs": 1,
+    "label_smoothing": 0.1,
+    "grad_clip": 1.0,
+    "patience": 4,
+    "amp": true,
+    "device": "auto",
+    "runs_dir": "runs"
+  },
+  "classifiers": {
+    "cnn": {
+      "arch": "efficientnet_b0",
+      "lr": 0.001,
+      "weight_decay": 0.01,
+      "batch_size": null
+    },
+    "vit": {
+      "arch": "vit_small_patch16_224.augreg_in21k_ft_in1k",
+      "lr": 0.0001,
+      "weight_decay": 0.05,
+      "batch_size": null
+    }
+  },
+  "clip": {
+    "arch": "ViT-B-32",
+    "pretrained": "laion2b_s34b_b79k",
+    "templates": [
+      "a photo of {}, a type of food.",
+      "a close-up photo of {}, a dish.",
+      "a photo of a plate of {}.",
+      "{}, served at a restaurant."
+    ],
+    "batch_size": null
+  },
+  "model_key": "clip"
+}

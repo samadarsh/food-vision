@@ -7,3 +7,6 @@ pyyaml>=6.0
 pandas>=2.2
 matplotlib>=3.9
 tqdm>=4.66
+# Phase 2: models
+timm>=1.0
+open_clip_torch>=3.0

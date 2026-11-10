@@ -1,0 +1,13 @@
+{
+  "top1": 0.9045,
+  "top5": 0.983,
+  "num_test_images": 2000,
+  "model": "cnn",
+  "arch": "efficientnet_b0",
+  "params": 4033168,
+  "best_epoch": 12,
+  "best_val_top1": 0.8633333333333333,
+  "epochs_trained": 15,
+  "train_minutes": 17.5,
+  "device": "mps"
+}

@@ -61,26 +61,86 @@ class DataConfig:
 
 
 @dataclass
+class TrainConfig:
+    """Optimisation settings shared by every trained model."""
+
+    epochs: int = 15
+    warmup_epochs: float = 1.0
+    label_smoothing: float = 0.1
+    grad_clip: float | None = 1.0
+    patience: int = 4               # early stopping on val top-1 (epochs without improvement)
+    amp: bool = True                # mixed precision on MPS/CUDA (ignored on CPU)
+    device: str = "auto"            # auto | mps | cuda | cpu
+    runs_dir: Path = Path("runs")
+
+    def __post_init__(self) -> None:
+        self.runs_dir = Path(self.runs_dir)
+        if self.epochs < 1 or self.patience < 1:
+            raise ValueError("train.epochs and train.patience must be >= 1")
+
+
+@dataclass
+class ClassifierConfig:
+    """A fine-tuned classifier: torchvision or timm architecture + its optimiser settings."""
+
+    arch: str
+    lr: float = 3e-4
+    weight_decay: float = 0.05
+    batch_size: int | None = None   # None -> data.batch_size
+
+
+@dataclass
+class ClipConfig:
+    """Zero-shot CLIP (OpenCLIP) model and prompt templates."""
+
+    arch: str = "ViT-B-32"
+    pretrained: str = "laion2b_s34b_b79k"
+    templates: list[str] = field(default_factory=lambda: ["a photo of {}, a type of food."])
+    batch_size: int | None = None
+
+    def __post_init__(self) -> None:
+        if not self.templates or any("{}" not in t for t in self.templates):
+            raise ValueError("clip.templates must be non-empty and each contain '{}'")
+
+
+@dataclass
 class Config:
     """Top-level project configuration."""
 
     data: DataConfig
     seed: int = 42
-    extra: dict[str, Any] = field(default_factory=dict)  # sections added by later phases
+    train: TrainConfig = field(default_factory=TrainConfig)
+    classifiers: dict[str, ClassifierConfig] = field(default_factory=dict)  # e.g. cnn, vit
+    clip: ClipConfig = field(default_factory=ClipConfig)
 
     def to_dict(self) -> dict[str, Any]:
         """Plain-dict view (paths as strings), handy for logging."""
-        d = asdict(self)
-        d["data"] = {k: str(v) if isinstance(v, Path) else v for k, v in d["data"].items()}
-        return d
+
+        def clean(x: Any) -> Any:
+            if isinstance(x, dict):
+                return {k: clean(v) for k, v in x.items()}
+            if isinstance(x, list):
+                return [clean(v) for v in x]
+            return str(x) if isinstance(x, Path) else x
+
+        return clean(asdict(self))
 
 
 def load_config(path: str | Path = DEFAULT_CONFIG) -> Config:
-    """Load and validate a YAML config file."""
+    """Load and validate a YAML config file (unknown keys raise a TypeError)."""
     with open(path) as f:
         raw: dict[str, Any] = yaml.safe_load(f) or {}
     if "data" not in raw:
         raise ValueError(f"{path}: missing 'data' section")
-    data = DataConfig(**raw.pop("data"))
-    seed = int(raw.pop("seed", 42))
-    return Config(data=data, seed=seed, extra=raw)
+    known = {"data", "seed", "train", "models"}
+    if unknown := set(raw) - known:
+        raise ValueError(f"{path}: unknown top-level keys {sorted(unknown)}")
+    models = dict(raw.get("models") or {})
+    clip = ClipConfig(**models.pop("clip", {}))
+    return Config(
+        data=DataConfig(**raw["data"]),
+        seed=int(raw.get("seed", 42)),
+        train=TrainConfig(**(raw.get("train") or {})),
+        classifiers={k: ClassifierConfig(**v) for k, v in models.items()},
+        clip=clip,
+    )

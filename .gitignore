@@ -10,7 +10,8 @@ __pycache__/
 # Data, models, run outputs
 data/
 checkpoints/
-runs/
+# Training runs: keep small result files (metrics, predictions), ignore checkpoints
+runs/**/*.pt
 *.pt
 *.pth
 *.onnx
