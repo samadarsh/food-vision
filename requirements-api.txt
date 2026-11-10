@@ -1,0 +1,7 @@
+# Serving only (Docker image): no PyTorch needed at inference time.
+fastapi>=0.115
+uvicorn[standard]>=0.30
+python-multipart>=0.0.9
+onnxruntime>=1.20
+numpy>=1.26
+pillow>=10.4

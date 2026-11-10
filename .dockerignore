@@ -1,0 +1,8 @@
+# Allow-list: the image needs only the package, serving deps and the ONNX model.
+*
+!pyproject.toml
+!requirements-api.txt
+!src/
+!models/*.onnx
+**/__pycache__
+**/*.egg-info

@@ -1,0 +1,21 @@
+{
+  "model": "vit",
+  "arch": "vit_small_patch16_224.augreg_in21k_ft_in1k",
+  "onnx_path": "models/vit.onnx",
+  "onnx_size_mb": 87.6,
+  "atol": 0.001,
+  "conversion": {
+    "num_images": 2000,
+    "max_abs_logit_diff": 8.26120376586914e-05,
+    "mean_abs_logit_diff": 1.260587623619358e-06,
+    "top1_agreement": 1.0,
+    "torch_top1": 0.921,
+    "onnx_top1": 0.921
+  },
+  "preprocessing_max_abs_diff": 0.0,
+  "preprocessing_mean_of_max_abs_diff": 0.0,
+  "end_to_end_onnx_top1": 0.921,
+  "recorded_pytorch_top1": 0.9205,
+  "note": "recorded_pytorch_top1 comes from Phase 2 (fp16 autocast on the training device); conversion.torch_top1 is PyTorch fp32 on CPU, the like-for-like comparison.",
+  "passed": true
+}

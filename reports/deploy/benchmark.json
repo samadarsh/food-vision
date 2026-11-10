@@ -1,0 +1,96 @@
+{
+  "environment": {
+    "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
+    "machine": "arm64",
+    "python": "3.14.5",
+    "torch": "2.15.0",
+    "onnxruntime": "1.31.1",
+    "cpu_threads": 5,
+    "torch_onednn_available": false,
+    "batch_size": 1,
+    "warmup": 20,
+    "iters": 100
+  },
+  "results": [
+    {
+      "model": "cnn",
+      "arch": "efficientnet_b0",
+      "backend": "PyTorch CPU (5 thr)",
+      "mean_ms": 103.04915588814765,
+      "p50_ms": 102.6809784816578,
+      "p95_ms": 104.94052956346422,
+      "min_ms": 94.5573749486357,
+      "iters": 100
+    },
+    {
+      "model": "cnn",
+      "arch": "efficientnet_b0",
+      "backend": "ONNX Runtime CPU (5 thr)",
+      "mean_ms": 5.860039202962071,
+      "p50_ms": 5.760812549851835,
+      "p95_ms": 6.31033624522388,
+      "min_ms": 5.625042133033276,
+      "iters": 100
+    },
+    {
+      "model": "cnn",
+      "arch": "efficientnet_b0",
+      "backend": "ONNX Runtime CoreML",
+      "mean_ms": 1.060333615168929,
+      "p50_ms": 1.0491875000298023,
+      "p95_ms": 1.181833166629076,
+      "min_ms": 0.9412909857928753,
+      "iters": 100
+    },
+    {
+      "model": "cnn",
+      "arch": "efficientnet_b0",
+      "backend": "PyTorch MPS",
+      "mean_ms": 5.049364594742656,
+      "p50_ms": 5.037812399677932,
+      "p95_ms": 5.247964919544756,
+      "min_ms": 4.796500084921718,
+      "iters": 100
+    },
+    {
+      "model": "vit",
+      "arch": "vit_small_patch16_224.augreg_in21k_ft_in1k",
+      "backend": "PyTorch CPU (5 thr)",
+      "mean_ms": 13.787511265836656,
+      "p50_ms": 13.759833062067628,
+      "p95_ms": 14.05432493193075,
+      "min_ms": 13.552749995142221,
+      "iters": 100
+    },
+    {
+      "model": "vit",
+      "arch": "vit_small_patch16_224.augreg_in21k_ft_in1k",
+      "backend": "ONNX Runtime CPU (5 thr)",
+      "mean_ms": 24.029807450715452,
+      "p50_ms": 23.768895538523793,
+      "p95_ms": 24.517546058632433,
+      "min_ms": 23.5191669780761,
+      "iters": 100
+    },
+    {
+      "model": "vit",
+      "arch": "vit_small_patch16_224.augreg_in21k_ft_in1k",
+      "backend": "ONNX Runtime CoreML",
+      "mean_ms": 49.926097923889756,
+      "p50_ms": 49.41839596722275,
+      "p95_ms": 56.0103811789304,
+      "min_ms": 48.4810839407146,
+      "iters": 100
+    },
+    {
+      "model": "vit",
+      "arch": "vit_small_patch16_224.augreg_in21k_ft_in1k",
+      "backend": "PyTorch MPS",
+      "mean_ms": 6.7122075404040515,
+      "p50_ms": 6.731229019351304,
+      "p95_ms": 6.865596387069672,
+      "min_ms": 6.298374850302935,
+      "iters": 100
+    }
+  ]
+}

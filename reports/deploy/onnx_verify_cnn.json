@@ -1,0 +1,21 @@
+{
+  "model": "cnn",
+  "arch": "efficientnet_b0",
+  "onnx_path": "models/cnn.onnx",
+  "onnx_size_mb": 16.7,
+  "atol": 0.001,
+  "conversion": {
+    "num_images": 2000,
+    "max_abs_logit_diff": 1.2874603271484375e-05,
+    "mean_abs_logit_diff": 1.0138288644157e-06,
+    "top1_agreement": 1.0,
+    "torch_top1": 0.905,
+    "onnx_top1": 0.905
+  },
+  "preprocessing_max_abs_diff": 0.0,
+  "preprocessing_mean_of_max_abs_diff": 0.0,
+  "end_to_end_onnx_top1": 0.905,
+  "recorded_pytorch_top1": 0.9045,
+  "note": "recorded_pytorch_top1 comes from Phase 2 (fp16 autocast on the training device); conversion.torch_top1 is PyTorch fp32 on CPU, the like-for-like comparison.",
+  "passed": true
+}

@@ -1,0 +1,26 @@
+{
+  "disclaimer": "APPROXIMATE reference values for one typical serving, for illustration only. They are rounded estimates in the range of typical entries in public nutrition databases (e.g. USDA FoodData Central), not measurements of the pictured food. Real values vary widely with recipe, portion size and preparation. Not medical or dietary advice.",
+  "units": {"calories": "kcal", "protein": "g", "carbs": "g", "fat": "g"},
+  "foods": {
+    "caesar_salad":   {"serving": "1 side bowl with dressing (~150 g)",      "calories": 280, "protein": 7,  "carbs": 12, "fat": 23},
+    "chicken_curry":  {"serving": "1 cup, without rice (~240 g)",            "calories": 290, "protein": 25, "carbs": 10, "fat": 17},
+    "chocolate_cake": {"serving": "1 slice with frosting (~95 g)",           "calories": 360, "protein": 4,  "carbs": 50, "fat": 16},
+    "donuts":         {"serving": "1 medium glazed donut (~60 g)",           "calories": 240, "protein": 4,  "carbs": 31, "fat": 11},
+    "dumplings":      {"serving": "6 steamed pork dumplings (~150 g)",       "calories": 300, "protein": 14, "carbs": 30, "fat": 13},
+    "filet_mignon":   {"serving": "6 oz cooked (~170 g)",                    "calories": 390, "protein": 46, "carbs": 0,  "fat": 22},
+    "french_fries":   {"serving": "1 medium portion (~117 g)",               "calories": 365, "protein": 4,  "carbs": 48, "fat": 17},
+    "fried_rice":     {"serving": "1 cup (~200 g)",                          "calories": 330, "protein": 8,  "carbs": 50, "fat": 10},
+    "frozen_yogurt":  {"serving": "1 cup (~170 g)",                          "calories": 230, "protein": 6,  "carbs": 38, "fat": 6},
+    "hamburger":      {"serving": "1 single-patty burger with bun (~220 g)", "calories": 500, "protein": 28, "carbs": 40, "fat": 25},
+    "ice_cream":      {"serving": "2 scoops vanilla (~130 g)",               "calories": 270, "protein": 5,  "carbs": 31, "fat": 14},
+    "omelette":       {"serving": "3-egg omelette with cheese (~200 g)",     "calories": 400, "protein": 26, "carbs": 3,  "fat": 31},
+    "pancakes":       {"serving": "3 medium pancakes with syrup (~230 g)",   "calories": 520, "protein": 10, "carbs": 90, "fat": 13},
+    "pizza":          {"serving": "2 slices cheese pizza (~210 g)",          "calories": 570, "protein": 24, "carbs": 70, "fat": 21},
+    "ramen":          {"serving": "1 restaurant bowl (~600 g)",              "calories": 650, "protein": 30, "carbs": 75, "fat": 25},
+    "samosa":         {"serving": "2 medium potato samosas (~140 g)",        "calories": 460, "protein": 8,  "carbs": 48, "fat": 26},
+    "spring_rolls":   {"serving": "2 fried spring rolls (~130 g)",           "calories": 300, "protein": 7,  "carbs": 30, "fat": 17},
+    "steak":          {"serving": "8 oz sirloin, cooked (~225 g)",           "calories": 450, "protein": 62, "carbs": 0,  "fat": 22},
+    "sushi":          {"serving": "8 pieces mixed rolls/nigiri (~230 g)",    "calories": 350, "protein": 16, "carbs": 58, "fat": 5},
+    "waffles":        {"serving": "1 Belgian waffle with syrup (~150 g)",    "calories": 410, "protein": 9,  "carbs": 58, "fat": 15}
+  }
+}
