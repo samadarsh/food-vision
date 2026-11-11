@@ -1,64 +1,139 @@
+<div align="center">
+
 # food-vision
 
-**Food recognition with nutritional insights: a fine-tuned CNN vs a fine-tuned ViT vs zero-shot CLIP on Food-101, served as an ONNX + FastAPI service.**
+**Food recognition with nutritional insights: a fine-tuned CNN vs a fine-tuned ViT vs zero-shot CLIP on Food-101, plus multi-dish detection, served as a torch-free ONNX + FastAPI service.**
 
-Upload a photo of a dish → get the top-3 predicted dishes with confidence and approximate nutrition per serving.
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)](pyproject.toml)
+[![PyTorch](https://img.shields.io/badge/PyTorch-training-EE4C2C?logo=pytorch&logoColor=white)](https://pytorch.org)
+[![ONNX Runtime](https://img.shields.io/badge/ONNX%20Runtime-serving-005CED?logo=onnx&logoColor=white)](https://onnxruntime.ai)
+[![FastAPI](https://img.shields.io/badge/FastAPI-API-009688?logo=fastapi&logoColor=white)](#api)
+[![Docker](https://img.shields.io/badge/Docker-no%20PyTorch-2496ED?logo=docker&logoColor=white)](#api)
+[![Tests](https://img.shields.io/badge/pytest-93%20tests-0A9EDC?logo=pytest&logoColor=white)](tests)
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](#licence)
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/samadarsh/food-vision/blob/main/notebooks/colab_train.ipynb)
+
+[**Results**](#results) · [**Quick start**](#quick-start) · [**API**](#api) · [**Multi-food detection**](#multi-food-detection-yolo) · [**Results notebook**](notebooks/results_walkthrough.ipynb) · [**Paper**](#background-the-published-paper)
+
+<img src="reports/detect/3661763_detected.jpg" width="40%" alt="Two samosas detected and classified separately">
+<img src="reports/detect/1023857_detected.jpg" width="40%" alt="Filet mignon classified from the whole image">
+
+<sub><b>Left:</b> <code>POST /detect</code> finds each food region and classifies it (samosa 97% and 89%; the small sauce bowl is a known weakness, see <a href="#multi-food-detection-yolo">limitations</a>). <b>Right:</b> no food region found, so the whole image is classified (filet mignon 74%). Real outputs of <code>scripts/detect.py</code> on test images.</sub>
+
+</div>
+
+> [!WARNING]
+> Nutrition values are **approximate reference values for a typical serving**, not measurements of the pictured food. See [Nutrition](#nutrition).
+
+<details>
+<summary><b>Table of contents</b></summary>
+
+- [At a glance](#at-a-glance)
+- [Quick start](#quick-start)
+  - [Use from Python](#use-from-python)
+  - [API](#api)
+- [Results](#results)
+- [Error analysis](#error-analysis)
+- [Deployment](#deployment)
+- [Multi-food detection (YOLO)](#multi-food-detection-yolo)
+- [Nutrition](#nutrition)
+- [Reproduce everything](#reproduce-everything)
+- [Architecture](#architecture)
+- [Project structure](#project-structure)
+- [Engineering notes](#engineering-notes)
+- [Roadmap (v2)](#roadmap-v2)
+- [Background: the published paper](#background-the-published-paper)
+- [Acknowledgements](#acknowledgements)
+- [Licence](#licence)
+
+</details>
+
+## At a glance
 
 | | |
 |---|---|
 | **Task** | 20-class food classification (Food-101 subset incl. samosa, chicken curry, fried rice, dumplings) |
 | **Best accuracy** | 92.7% top-1 (zero-shot CLIP), statistically tied with a fine-tuned ViT-S/16 at 92.1% |
 | **Deployed model** | ViT-S/16 → ONNX (100% top-1 agreement with PyTorch on the 2,000 test images) |
-| **Serving** | FastAPI, Docker, ONNX Runtime, no PyTorch in the image |
 | **Multi-food detection** | YOLO11n (COCO) food regions → each crop classified by the ViT (`POST /detect`) |
-| **Quality** | 93 pytest tests, split leakage checks, McNemar significance tests |
+| **Serving** | FastAPI, Docker, ONNX Runtime, no PyTorch in the image |
+| **Quality** | 93 pytest tests, split leakage checks, McNemar significance tests, mutation-checked parity tests |
 
-> ⚠️ Nutrition values are **approximate reference values for a typical serving**, not measurements of the pictured food. See [Nutrition](#nutrition).
+**What makes it more than a notebook:**
 
----
+* **Fair comparison:** three model families on identical leak-free splits, with paired significance tests instead of eyeballed accuracy.
+* **Honest analysis:** error analysis and explainability, including showing *where* ViT attention maps mislead.
+* **Verified deployment:** every export is checked against PyTorch or Ultralytics on real test images before it is served.
 
-## Background: the published paper
+## Quick start
 
-This project is a rebuild of my final-year project and its published paper:
-
-> **An Integrated Framework for Food Recognition, Nutritional Insights, and Meal Recording.**
-> <!-- TODO(author): add authors, venue, year and DOI/link -->
-> _Authors, venue, year and link: to be added._
-
-The original work combined food recognition, nutrition lookup and meal recording. This version rebuilds the recognition and nutrition parts as an engineering-grade pipeline:
-
-* reproducible data splits;
-* three model families compared under identical evaluation, with significance testing;
-* explainability, including an analysis of where it misleads;
-* a verified ONNX export served through a containerised API.
-
-## Architecture
-
-```mermaid
-flowchart LR
-    subgraph Data["1 · Data"]
-        A[Food-101<br/>torchvision download] --> B[20-class subset<br/>seeded, leak-free splits<br/>train 6000 / val 1500 / test 2000]
-        B --> C[EDA<br/>corrupt + duplicate checks]
-    end
-    subgraph Models["2 · Models (same splits)"]
-        B --> D[EfficientNet-B0<br/>fine-tuned]
-        B --> E[ViT-S/16<br/>fine-tuned]
-        B --> F[CLIP ViT-B/32<br/>zero-shot prompts]
-    end
-    subgraph Eval["3 · Evaluation"]
-        D & E & F --> G[top-1/5 · per-class F1<br/>confusion · McNemar · latency]
-        D --> H[Grad-CAM]
-        E --> I[Attention rollout<br/>+ artifact-token check]
-    end
-    subgraph Deploy["4 · Deployment"]
-        E --> J[ONNX export<br/>+ verification]
-        J --> K[FastAPI /predict<br/>ONNX Runtime]
-        L[(nutrition.json)] --> K
-        K --> M[Docker image]
-    end
+```bash
+git clone https://github.com/samadarsh/food-vision.git && cd food-vision
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt && pip install -e .
+pytest                                     # 93 tests in seconds, no dataset or trained model needed
 ```
 
-**Request path:** `POST /predict` (image) → decode + validate → resize and center-crop (NumPy/PIL, identical to torchvision, unit-tested) → ONNX Runtime → softmax top-k → nutrition lookup → JSON.
+Trained weights and ONNX files are not committed. To produce `models/vit.onnx` and `models/yolo11n.onnx`, run the pipeline in [Reproduce everything](#reproduce-everything). Fine-tuning both models took about 30 minutes in total on an Apple Silicon Mac (17.5 + 12.2 min, excluding the dataset download); [Colab](notebooks/colab_train.ipynb) works if you have no local GPU.
+
+### Use from Python
+
+```python
+from PIL import Image
+from food_vision.inference import OnnxClassifier
+from food_vision.detection import OnnxYoloDetector, detect_and_classify
+
+clf = OnnxClassifier("models/vit.onnx")
+image = Image.open("my_lunch.jpg")
+clf.predict(image, top_k=3)            # [('samosa', 0.973), ('omelette', 0.005), ('ramen', 0.002)]
+
+det = OnnxYoloDetector("models/yolo11n.onnx")
+for dish in detect_and_classify(image, det, clf, top_k=1):
+    print(dish.box, dish.predictions)  # one entry per food region (or the whole image)
+```
+
+### API
+
+```bash
+uvicorn food_vision.api.app:app --port 8000          # local; Swagger UI at http://localhost:8000/docs
+
+docker build -t food-vision .                          # needs models/vit.onnx
+docker run --rm -p 8000:8000 food-vision
+
+curl -F "file=@my_lunch.jpg" "http://localhost:8000/predict?top_k=3"
+curl -F "file=@my_lunch.jpg" "http://localhost:8000/detect?top_k=3&conf=0.25"   # one entry per detected dish
+python scripts/detect.py my_lunch.jpg                   # same pipeline from the CLI; saves an annotated image
+```
+
+<details>
+<summary>Example <code>/predict</code> response</summary>
+
+```json
+{
+  "predictions": [
+    {"rank": 1, "label": "samosa", "display_name": "Samosa", "confidence": 0.973,
+     "nutrition": {"serving": "2 medium potato samosas (~140 g)", "calories": 460.0,
+                   "protein": 8.0, "carbs": 48.0, "fat": 26.0}},
+    ...
+  ],
+  "nutrition_disclaimer": "APPROXIMATE reference values for one typical serving, ...",
+  "model": "vit_small_patch16_224.augreg_in21k_ft_in1k",
+  "inference_ms": 53.2
+}
+```
+
+</details>
+
+| Endpoint | Returns |
+|---|---|
+| `GET /health` | status, model name, number of classes |
+| `GET /classes` | every class with display name and nutrition |
+| `POST /predict` | top-k dishes with confidence and nutrition |
+| `POST /detect` | per dish: box (original-image pixels), detector's COCO label and score, classifier top-k with nutrition |
+
+**Error codes:** 400 (unreadable image), 413 (too large), 415 (wrong type), 422 (bad `top_k` / `conf`), 503 (`/detect` without a detector).
+
+The Docker image includes the detector when `models/yolo11n.onnx` exists at build time (`--build-arg DETECTOR=...` selects another file). Otherwise `/detect` returns 503, and everything else works as before.
 
 ## Results
 
@@ -85,6 +160,7 @@ Latency: batch 1, fp32, forward pass only, mean / p95 over 50 runs after warm-up
 
 * **Zero-shot CLIP matches a ViT fine-tuned on 6,000 images.** CLIP never saw a training image; its prompts are just "a photo of {dish}, a type of food" and three variants.
 * **The ViT beats the CNN** (p = 0.019) and converges faster (best val at epoch 5 vs 12).
+* **The ViT is deployed, not CLIP:** they are statistically tied, and the ViT has 4× fewer inference parameters and lower latency.
 * **The fine-tuned models overfit:** train top-1 reaches about 99% while val levels off at 86–89%, even with augmentation and label smoothing. With only 300 images per class, pretraining matters more than architecture.
 * **Test scores are 3.0–4.1 points higher than val scores for all three models**, including zero-shot CLIP, which used neither split. This matches how Food-101 was built: test images were manually cleaned, while training images (where val comes from) were left noisy on purpose.
 
@@ -94,11 +170,14 @@ Latency: batch 1, fp32, forward pass only, mean / p95 over 50 runs after warm-up
 
 1. **steak ↔ filet mignon is the dominant error for all three models**: 42–43 errors each, about a quarter of all ViT errors. ViT recall is 69% on steak and 75% on filet mignon. This is fine-grained: filet mignon *is* a cut of steak, and plated photos look alike.
 2. **ice cream → frozen yogurt** is the second-largest confusion and is **worst for zero-shot CLIP** (25 ice-cream images called frozen yogurt, against 12 for the fine-tuned ViT). Text prompts can't separate two visually identical desserts; labelled data can.
-3. **Many confident errors are multi-dish photos**: ice cream served *on* waffles labelled "waffles", a pastry beside a salad. A single label can't describe such images, which motivates v2 below.
+3. **Many confident errors are multi-dish photos**: ice cream served *on* waffles labelled "waffles", a pastry beside a salad. A single label can't describe such images, which motivated [multi-food detection](#multi-food-detection-yolo).
 4. **49 test images are misclassified by every model** (`reports/eval/all_wrong.jpg`), several with questionable ground-truth labels.
 5. **Data issues found in EDA:** one photo filed as both *omelette* and *pancakes* (byte-identical; it shows both dishes) and one train/val duplicate. Both are excluded in the config.
 
+<details>
+<summary>Most confidently wrong ViT predictions</summary>
 <p align="center"><img src="reports/eval/vit_worst_errors.jpg" width="620" alt="Most confidently wrong ViT predictions"></p>
+</details>
 
 ### What do the models look at?
 
@@ -123,7 +202,7 @@ Grad-CAM (CNN) and attention rollout (ViT) on the same test images:
 | Top-1 agreement with PyTorch | 100% | 100% |
 | NumPy preprocessing vs torchvision | identical (max diff 0.0) | identical (max diff 0.0) |
 
-Exported-model top-1 equals PyTorch fp32 top-1 (92.10% / 90.50%). The Phase 2 numbers in the results table are 0.05 points lower because they were evaluated with fp16 autocast on the training device.
+Exported-model top-1 equals PyTorch fp32 top-1 (92.10% / 90.50%). The numbers in the results table are 0.05 points lower because they were evaluated with fp16 autocast on the training device.
 
 **Latency, PyTorch vs ONNX Runtime** (`scripts/benchmark.py`; batch 1, fp32, 20 warm-up runs + 100 timed runs; Apple Silicon, 5 CPU threads):
 
@@ -152,22 +231,25 @@ Food-101 has no bounding boxes, so there is no data here to train or evaluate a 
 
 **Serving stays torch-free.** Letterboxing and class-aware NMS are re-implemented in NumPy/PIL following Ultralytics' arithmetic (`src/food_vision/detection.py`). `scripts/export_yolo.py` measures agreement on 200 random test images:
 
-| Reference | Detections (reference / ours) | Matched (same class, IoU ≥ 0.9) | Mean IoU | Max \|Δscore\| |
+| Reference | Detections (reference / ours) | Matched (same class, IoU ≥ 0.9) | Mean IoU | Max score diff |
 |---|---|---|---|---|
 | Ultralytics, same ONNX file (**pass/fail**) | 651 / 655 | 98.9% / 98.3% | 0.9965 | 0.058 |
 | Ultralytics PyTorch weights (info) | 630 / 655 | 93.5% / 89.9% | 0.9876 | 0.485 |
 
-**Reading the agreement table:**
+<details>
+<summary>Reading the agreement table</summary>
 
 * **Same ONNX file:** the remaining differences come from PIL vs OpenCV bilinear resizing. PIL is used so the API needs no OpenCV.
 * **PyTorch weights:** Ultralytics runs them with *rectangular* input (for example 640×480), while a static export always sees 640×640. That explains the lower agreement there.
 * **Coverage:** 151 of 200 sampled test images get at least one food region. The rest use the whole-image fallback.
 
+</details>
+
 **Limitations.**
 
 * **No accuracy measurement:** there is no detection mAP or per-dish accuracy, because no box-labelled food data is available.
 * **Coarse proposals:** COCO food classes are coarse (a samosa is proposed as a `sandwich`).
-* **Closed-set classifier:** it always picks one of its 20 dishes, even for a crop of a side dish or sauce bowl.
+* **Closed-set classifier:** it always picks one of its 20 dishes, even for a crop of a side dish or sauce bowl (the 39% "samosa" bowl in the image at the top).
 * **Licence:** Ultralytics and its pretrained weights are **AGPL-3.0**. They are used only at export time, but the exported model is derived from them, which is why this repository is AGPL-3.0 too (see [Licence](#licence)).
 
 ## Nutrition
@@ -178,12 +260,9 @@ Food-101 has no bounding boxes, so there is no data here to train or evaluate a 
 * Every API response includes this disclaimer.
 * A unit test checks that each entry is internally consistent: kcal ≈ 4·protein + 4·carbs + 9·fat, within 10%.
 
-## Quick start
+## Reproduce everything
 
 ```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt && pip install -e .
-
 python scripts/prepare_data.py            # downloads Food-101 (~5 GB, resumable), builds splits
 python scripts/eda.py                     # → reports/eda/
 python scripts/zero_shot_clip.py          # → runs/clip/
@@ -199,42 +278,43 @@ pytest                                    # 93 tests, no dataset needed
 
 * **Device:** chosen automatically: Apple MPS, then CUDA, then CPU.
 * **No local GPU?** Use [`notebooks/colab_train.ipynb`](notebooks/colab_train.ipynb).
-* **Results tour:** [`notebooks/results_walkthrough.ipynb`](notebooks/results_walkthrough.ipynb) shows every result above inline.
+* **Results tour:** [`notebooks/results_walkthrough.ipynb`](notebooks/results_walkthrough.ipynb) shows every result above inline, without retraining.
 * **Configuration:** everything is in [`configs/default.yaml`](configs/default.yaml): classes, images per split, seed, hyperparameters, model choices.
 
-### Run the API
+## Architecture
 
-```bash
-uvicorn food_vision.api.app:app --port 8000          # local; Swagger UI at http://localhost:8000/docs
-
-docker build -t food-vision .                          # needs models/vit.onnx (export step above)
-docker run --rm -p 8000:8000 food-vision
-
-curl -F "file=@my_lunch.jpg" "http://localhost:8000/predict?top_k=3"
-curl -F "file=@my_lunch.jpg" "http://localhost:8000/detect?top_k=3&conf=0.25"   # one entry per detected dish
-python scripts/detect.py my_lunch.jpg                   # same pipeline from the CLI; saves an annotated image
+```mermaid
+flowchart LR
+    subgraph Data["1 · Data"]
+        A[Food-101<br/>torchvision download] --> B[20-class subset<br/>seeded, leak-free splits<br/>train 6000 / val 1500 / test 2000]
+        B --> C[EDA<br/>corrupt + duplicate checks]
+    end
+    subgraph Models["2 · Models (same splits)"]
+        B --> D[EfficientNet-B0<br/>fine-tuned]
+        B --> E[ViT-S/16<br/>fine-tuned]
+        B --> F[CLIP ViT-B/32<br/>zero-shot prompts]
+    end
+    subgraph Eval["3 · Evaluation"]
+        D & E & F --> G[top-1/5 · per-class F1<br/>confusion · McNemar · latency]
+        D --> H[Grad-CAM]
+        E --> I[Attention rollout<br/>+ artifact-token check]
+    end
+    subgraph Deploy["4 · Deployment"]
+        E --> J[ONNX export<br/>+ verification]
+        J --> K[FastAPI /predict<br/>ONNX Runtime]
+        N[YOLO11n COCO<br/>ONNX + verification] --> O[FastAPI /detect<br/>crop → ViT per region]
+        J --> O
+        L[(nutrition.json)] --> K & O
+        K & O --> M[Docker image<br/>no PyTorch]
+    end
 ```
 
-The Docker image includes the detector when `models/yolo11n.onnx` exists at build time (`--build-arg DETECTOR=...` selects another file). Otherwise `/detect` returns 503, and everything else works as before.
-
-```json
-{
-  "predictions": [
-    {"rank": 1, "label": "samosa", "display_name": "Samosa", "confidence": 0.973,
-     "nutrition": {"serving": "2 medium potato samosas (~140 g)", "calories": 460.0,
-                   "protein": 8.0, "carbs": 48.0, "fat": 26.0}},
-    ...
-  ],
-  "nutrition_disclaimer": "APPROXIMATE reference values for one typical serving, ...",
-  "model": "vit_small_patch16_224.augreg_in21k_ft_in1k",
-  "inference_ms": 53.2
-}
-```
-
-**Endpoints:** `GET /health`, `GET /classes`, `POST /predict`, `POST /detect`. `/detect` returns, per dish: the box (original-image pixels), the detector's COCO label and score, and the classifier's top-k with nutrition.
-**Error codes:** 400 (unreadable image), 413 (too large), 415 (wrong type), 422 (bad `top_k` / `conf`), 503 (`/detect` without a detector).
+**Request path:** `POST /predict` (image) → decode + validate → resize and center-crop (NumPy/PIL, identical to torchvision, unit-tested) → ONNX Runtime → softmax top-k → nutrition lookup → JSON. `POST /detect` runs YOLO first, then the same classifier path once per food region.
 
 ## Project structure
+
+<details>
+<summary>Show the tree</summary>
 
 ```
 configs/default.yaml        classes, subset sizes, seed, training + model settings
@@ -249,28 +329,48 @@ src/food_vision/
   nutrition.py              approximate nutrition lookup
   detection.py              YOLO ONNX detector (letterbox, NMS), detect + classify, drawing
   api/                      FastAPI app + schemas
-scripts/                    one entry point per step (see Quick start)
+scripts/                    one entry point per step (see Reproduce everything)
 tests/                      pytest suite (fake dataset + tiny ONNX model fixtures)
-reports/                    EDA, evaluation, explainability and deployment outputs
+reports/                    EDA, evaluation, explainability, deployment and detection outputs
 runs/                       per-model metrics, test predictions (checkpoints not committed)
 notebooks/                  results walkthrough, Colab training
 ```
+
+</details>
 
 ## Engineering notes
 
 * **No leakage:** train and val are drawn from the official Food-101 train split, and test from the official test split. Split manifests are versioned by a config fingerprint. EDA hashes every image to catch duplicates across splits.
 * **Same evaluation for every model:** each model writes raw test logits (`test_predictions.npz`), and every metric is computed from those files by the same code.
 * **Training/serving parity:** the API's NumPy preprocessing is unit-tested to equal the torchvision eval transform exactly. Mutation checks (wrong crop rounding, wrong interpolation) make these tests fail, so they would catch a regression.
+* **Detector parity:** the NumPy letterbox, NMS and box mapping are tested against a tiny synthetic ONNX detector and mutation-checked the same way.
 * **Reproducibility:** fixed seeds, per-epoch CSV logs, the config saved with every run, and small result files committed.
 
-## Next steps (v2)
+## Roadmap (v2)
 
-* **Food-specific detection and segmentation:** the current detector is COCO-pretrained (see [Multi-food detection](#multi-food-detection-yolo)). Next: fine-tune YOLO, or a segmentation variant, on box- or mask-labelled food data (e.g. UECFOOD-256), and measure mAP and per-dish accuracy.
-* **Portion estimation:** segmentation masks plus a size reference (plate, depth from a phone sensor) to estimate grams, turning per-serving references into per-photo estimates.
-* **Fine-grained classes:** targeted data or hierarchical labels for steak vs filet mignon and ice cream vs frozen yogurt.
-* **Better explanations for ViTs:** register-token ViTs, or gradient-weighted attention, instead of plain rollout.
-* **Meal recording:** persist predictions per user and day, as in the original paper's meal log.
-* **Scale up:** all 101 classes and larger backbones (ViT-B/16 via `configs/default.yaml`), plus a linear probe or fine-tuning on top of CLIP.
+- [x] Multi-dish photos: detect-then-classify with a COCO detector ([details](#multi-food-detection-yolo))
+- [ ] **Food-specific detection and segmentation:** fine-tune YOLO, or a segmentation variant, on box- or mask-labelled food data (e.g. UECFOOD-256), and measure mAP and per-dish accuracy
+- [ ] **Portion estimation:** segmentation masks plus a size reference (plate, depth from a phone sensor) to estimate grams, turning per-serving references into per-photo estimates
+- [ ] **Fine-grained classes:** targeted data or hierarchical labels for steak vs filet mignon and ice cream vs frozen yogurt
+- [ ] **Better explanations for ViTs:** register-token ViTs, or gradient-weighted attention, instead of plain rollout
+- [ ] **Meal recording:** persist predictions per user and day, as in the original paper's meal log
+- [ ] **Scale up:** all 101 classes and larger backbones (ViT-B/16 via `configs/default.yaml`), plus a linear probe or fine-tuning on top of CLIP
+
+## Background: the published paper
+
+This project is a rebuild of my final-year project and its published paper:
+
+> **An Integrated Framework for Food Recognition, Nutritional Insights, and Meal Recording.**
+> <!-- TODO(author): add authors, venue, year and DOI/link -->
+> _Authors, venue, year and link: to be added._
+
+The original work combined food recognition, nutrition lookup and meal recording. This version rebuilds the recognition and nutrition parts as an engineering-grade pipeline:
+
+* reproducible data splits;
+* three model families compared under identical evaluation, with significance testing;
+* explainability, including an analysis of where it misleads;
+* a verified ONNX export served through a containerised API;
+* multi-dish detection for photos with more than one food.
 
 ## Acknowledgements
 
