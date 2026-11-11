@@ -13,7 +13,7 @@
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](#licence)
 [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/samadarsh/food-vision/blob/main/notebooks/colab_train.ipynb)
 
-[**Results**](#results) · [**Quick start**](#quick-start) · [**API**](#api) · [**Multi-food detection**](#multi-food-detection-yolo) · [**Results notebook**](notebooks/results_walkthrough.ipynb) · [**Paper**](#background-the-published-paper)
+[**Results**](#results) · [**Quick start**](#quick-start) · [**API**](#api) · [**Multi-food detection**](#multi-food-detection-yolo) · [**Results notebook**](notebooks/results_walkthrough.ipynb) · [**Background**](#background)
 
 <img src="reports/detect/3661763_detected.jpg" width="40%" alt="Two samosas detected and classified separately">
 <img src="reports/detect/1023857_detected.jpg" width="40%" alt="Filet mignon classified from the whole image">
@@ -42,7 +42,7 @@
 - [Project structure](#project-structure)
 - [Engineering notes](#engineering-notes)
 - [Roadmap (v2)](#roadmap-v2)
-- [Background: the published paper](#background-the-published-paper)
+- [Background](#background)
 - [Acknowledgements](#acknowledgements)
 - [Licence](#licence)
 
@@ -372,14 +372,12 @@ demo/                       Gradio demo for a Hugging Face Space (app.py + requi
 - [ ] **Portion estimation:** segmentation masks plus a size reference (plate, depth from a phone sensor) to estimate grams, turning per-serving references into per-photo estimates
 - [ ] **Fine-grained classes:** targeted data or hierarchical labels for steak vs filet mignon and ice cream vs frozen yogurt
 - [ ] **Better explanations for ViTs:** register-token ViTs, or gradient-weighted attention, instead of plain rollout
-- [ ] **Meal recording:** persist predictions per user and day, as in the original paper's meal log
+- [ ] **Meal recording:** persist predictions per user and day, as in the original project's meal log
 - [ ] **Scale up:** all 101 classes and larger backbones (ViT-B/16 via `configs/default.yaml`), plus a linear probe or fine-tuning on top of CLIP
 
-## Background: the published paper
+## Background
 
-This project is a rebuild of my final-year project and its published paper:
-
-> **An Integrated Framework for Food Recognition, Nutritional Insights, and Meal Recording.**
+This project is a rebuild of my final-year project, *An Integrated Framework for Food Recognition, Nutritional Insights, and Meal Recording*.
 
 The original work combined food recognition, nutrition lookup and meal recording. This version rebuilds the recognition and nutrition parts as an engineering-grade pipeline:
 
