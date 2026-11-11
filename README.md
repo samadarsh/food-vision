@@ -126,6 +126,12 @@ python scripts/detect.py my_lunch.jpg                   # same pipeline from the
 
 </details>
 
+**Browser demo (Gradio):** upload a photo and see the annotated image plus a table of dish, confidence and nutrition. It is torch-free, downloads the two ONNX models from the release at startup, and is ready to deploy as a Hugging Face Space.
+
+```bash
+pip install -r demo/requirements.txt && python demo/app.py     # http://localhost:7860
+```
+
 | Endpoint | Returns |
 |---|---|
 | `GET /health` | status, model name, number of classes |
@@ -346,6 +352,7 @@ tests/                      pytest suite (fake dataset + tiny ONNX model fixture
 reports/                    EDA, evaluation, explainability, deployment and detection outputs
 runs/                       per-model metrics, test predictions (checkpoints not committed)
 notebooks/                  results walkthrough, Colab training
+demo/                       Gradio demo for a Hugging Face Space (app.py + requirements.txt)
 ```
 
 </details>
