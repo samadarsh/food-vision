@@ -1,0 +1,4 @@
+# Hugging Face Space / local demo. Torch-free: the food_vision package's core install is
+# NumPy + Pillow + ONNX Runtime (plus FastAPI, which Gradio needs anyway).
+gradio>=5.0
+food-vision @ git+https://github.com/samadarsh/food-vision@v0.1.0

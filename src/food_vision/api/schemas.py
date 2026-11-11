@@ -23,6 +23,8 @@ class Prediction(BaseModel):
 
 class PredictResponse(BaseModel):
     predictions: list[Prediction]
+    confident: bool = Field(description="True when the top-1 confidence is at least FOOD_VISION_MIN_CONFIDENCE "
+                                        "(default 0.5). False suggests a non-food photo or a dish outside the classes")
     nutrition_disclaimer: str
     nutrition_units: dict[str, str]
     model: str
@@ -56,6 +58,8 @@ class DetectedDish(BaseModel):
     detector_label: str | None = Field(description="Detector's COCO class for the region, e.g. bowl, pizza")
     detector_confidence: float | None = Field(description="Detector score for the region")
     predictions: list[Prediction] = Field(description="Dish classifier top-k for the cropped region")
+    confident: bool = Field(description="True when this dish's top-1 confidence is at least "
+                                        "FOOD_VISION_MIN_CONFIDENCE (default 0.5)")
 
 
 class DetectResponse(BaseModel):

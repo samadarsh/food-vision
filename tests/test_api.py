@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from fastapi.testclient import TestClient
 
-from food_vision.api.app import app
+from food_vision.api.app import _min_confidence, app, is_confident
 
 from .conftest import CLASSES, jpeg_bytes
 
@@ -82,3 +82,47 @@ def test_empty_upload_is_400(client) -> None:
 
 def test_oversized_upload_is_413(client) -> None:
     assert client.post("/predict", files=_upload(b"\xff" * 60_000)).status_code == 413
+
+
+def _client_with_floor(tiny_onnx, monkeypatch, floor: str) -> TestClient:
+    monkeypatch.setenv("FOOD_VISION_MODEL", str(tiny_onnx))
+    monkeypatch.setenv("FOOD_VISION_MIN_CONFIDENCE", floor)
+    return TestClient(app)
+
+
+def test_is_confident_uses_top1_and_includes_the_floor() -> None:
+    assert is_confident([("pizza", 0.5), ("samosa", 0.3)], 0.5)  # "at least": equal counts
+    assert not is_confident([("pizza", 0.4999), ("samosa", 0.4)], 0.5)
+    assert is_confident([("pizza", 0.6), ("samosa", 0.1)], 0.5)  # only top-1 matters
+    assert not is_confident([], 0.0)
+
+
+def test_predict_confident_default_floor_is_half(client) -> None:
+    body = client.post("/predict", files=_upload(jpeg_bytes())).json()
+    assert body["confident"] is (body["predictions"][0]["confidence"] >= 0.5)
+
+
+def test_predict_confident_follows_env_floor(tiny_onnx, monkeypatch) -> None:
+    with _client_with_floor(tiny_onnx, monkeypatch, "0") as c:
+        top1 = c.post("/predict", files=_upload(jpeg_bytes())).json()["predictions"][0]["confidence"]
+    assert 0 < top1 < 1
+    for floor, expected in [(top1 - 0.01, True), (top1 + 0.01, False)]:  # same image, floor either side of top-1
+        with _client_with_floor(tiny_onnx, monkeypatch, str(floor)) as c:
+            body = c.post("/predict", files=_upload(jpeg_bytes())).json()
+        assert body["confident"] is expected and body["predictions"][0]["confidence"] == top1
+
+
+@pytest.mark.parametrize("value, expected", [(None, 0.5), ("", 0.5), ("0.8", 0.8), ("0", 0.0), ("1", 1.0)])
+def test_confidence_floor_default_and_env(monkeypatch, value, expected) -> None:
+    if value is None:
+        monkeypatch.delenv("FOOD_VISION_MIN_CONFIDENCE", raising=False)
+    else:
+        monkeypatch.setenv("FOOD_VISION_MIN_CONFIDENCE", value)
+    assert _min_confidence() == expected
+
+
+@pytest.mark.parametrize("bad", ["1.5", "-0.1", "high", "nan"])
+def test_invalid_confidence_floor_fails_at_startup(tiny_onnx, monkeypatch, bad) -> None:
+    with pytest.raises(ValueError, match="FOOD_VISION_MIN_CONFIDENCE"):
+        with _client_with_floor(tiny_onnx, monkeypatch, bad):
+            pass

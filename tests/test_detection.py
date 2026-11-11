@@ -174,6 +174,28 @@ def test_detect_endpoint_params_and_fallback(client) -> None:
     assert none["dishes"][0]["detector_label"] is None
 
 
+def test_detect_flags_each_dish_against_the_confidence_floor(tiny_onnx, tiny_yolo, monkeypatch) -> None:
+    """`confident` is per dish: each crop's own top-1 is compared with FOOD_VISION_MIN_CONFIDENCE."""
+    monkeypatch.setenv("FOOD_VISION_MODEL", str(tiny_onnx))
+    monkeypatch.setenv("FOOD_VISION_DETECTOR", str(tiny_yolo))
+
+    def dishes(floor: str | None, query: str = "conf=0.05") -> list[dict]:
+        if floor is None:
+            monkeypatch.delenv("FOOD_VISION_MIN_CONFIDENCE", raising=False)
+        else:
+            monkeypatch.setenv("FOOD_VISION_MIN_CONFIDENCE", floor)
+        with TestClient(app) as c:
+            return c.post(f"/detect?{query}", files=_upload(jpeg_bytes((128, 64)))).json()["dishes"]
+
+    default = dishes(None)
+    assert len(default) == 2
+    assert [d["confident"] for d in default] == [d["predictions"][0]["confidence"] >= 0.5 for d in default]
+    assert all(d["confident"] for d in dishes("0"))
+    assert not any(d["confident"] for d in dishes("1"))
+    fallback = dishes("1", "conf=0.95")  # whole-image fallback is flagged the same way
+    assert fallback[0]["source"] == "whole_image" and fallback[0]["confident"] is False
+
+
 @pytest.mark.parametrize("query", ["conf=0", "conf=1.5", "top_k=0"])
 def test_detect_invalid_params_422(client, query) -> None:
     assert client.post(f"/detect?{query}", files=_upload(jpeg_bytes())).status_code == 422
