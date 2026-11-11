@@ -26,3 +26,5 @@ python-multipart>=0.0.9
 httpx>=0.27
 # Phase 5: tests
 pytest>=8.0
+# Detection export only (scripts/export_yolo.py); not needed by the API. AGPL-3.0 licensed.
+ultralytics>=8.3

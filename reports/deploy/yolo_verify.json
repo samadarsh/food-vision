@@ -1,0 +1,43 @@
+{
+  "weights": "yolo11n.pt",
+  "onnx_path": "models/yolo11n.onnx",
+  "onnx_size_mb": 10.7,
+  "imgsz": 640,
+  "conf": 0.25,
+  "iou": 0.7,
+  "match_iou": 0.9,
+  "num_images": 200,
+  "source": "random sample of the test split (seeded)",
+  "comparisons": {
+    "same_onnx": {
+      "reference_detections": 651,
+      "onnx_detections": 655,
+      "matched": 644,
+      "match_rate_vs_reference": 0.989247311827957,
+      "match_rate_vs_onnx": 0.983206106870229,
+      "mean_iou_matched": 0.9964794561914776,
+      "max_abs_score_diff_matched": 0.058186620473861694
+    },
+    "pytorch_rect": {
+      "reference_detections": 630,
+      "onnx_detections": 655,
+      "matched": 589,
+      "match_rate_vs_reference": 0.9349206349206349,
+      "match_rate_vs_onnx": 0.899236641221374,
+      "mean_iou_matched": 0.9875955656550331,
+      "max_abs_score_diff_matched": 0.48522695899009705
+    }
+  },
+  "pass_criterion": "same_onnx match rate >= 0.95 in both directions",
+  "images_with_food_detection": 151,
+  "food_labels": [
+    "bowl",
+    "cake",
+    "donut",
+    "hot dog",
+    "pizza",
+    "sandwich"
+  ],
+  "license_note": "Ultralytics YOLO weights and code are AGPL-3.0",
+  "passed": true
+}

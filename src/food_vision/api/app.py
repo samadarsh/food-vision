@@ -6,6 +6,8 @@ Environment variables:
     FOOD_VISION_MODEL         path to an ONNX file from scripts/export_onnx.py (default models/vit.onnx)
     FOOD_VISION_MAX_UPLOAD_MB upload size limit in MB (default 10)
     FOOD_VISION_THREADS       ONNX Runtime intra-op threads (default: runtime decides)
+    FOOD_VISION_DETECTOR      YOLO ONNX file from scripts/export_yolo.py (default models/yolo11n.onnx);
+                              optional: if missing, POST /detect returns 503 and /predict is unaffected
 """
 
 from __future__ import annotations
@@ -21,7 +23,10 @@ from fastapi import FastAPI, File, HTTPException, Query, Request, UploadFile
 from fastapi.responses import RedirectResponse
 from PIL import Image, UnidentifiedImageError
 
-from food_vision.api.schemas import ClassInfo, HealthResponse, NutritionOut, Prediction, PredictResponse
+from food_vision.api.schemas import (
+    Box, ClassInfo, DetectedDish, DetectResponse, HealthResponse, NutritionOut, Prediction, PredictResponse,
+)
+from food_vision.detection import OnnxYoloDetector, detect_and_classify
 from food_vision.inference import OnnxClassifier
 from food_vision.nutrition import NutritionTable, default_nutrition
 
@@ -39,6 +44,30 @@ def _nutrition(table: NutritionTable, label: str) -> NutritionOut | None:
     return NutritionOut(**n.to_dict()) if n else None
 
 
+def _predictions(top: list[tuple[str, float]], table: NutritionTable) -> list[Prediction]:
+    """Classifier top-k -> ranked API predictions with nutrition."""
+    return [Prediction(rank=i + 1, label=label, display_name=display_name(label),
+                       confidence=round(p, 6), nutrition=_nutrition(table, label))
+            for i, (label, p) in enumerate(top)]
+
+
+def _read_image(file: UploadFile, max_bytes: int) -> Image.Image:
+    """Validate an upload (type, size, decodability) and return the decoded image."""
+    if file.content_type and file.content_type.lower() not in ALLOWED_TYPES:
+        raise HTTPException(415, f"Unsupported content type {file.content_type!r}; upload an image")
+    data = file.file.read(max_bytes + 1)
+    if not data:
+        raise HTTPException(400, "Empty upload")
+    if len(data) > max_bytes:
+        raise HTTPException(413, f"File larger than {max_bytes // (1024 * 1024)} MB")
+    try:
+        image = Image.open(io.BytesIO(data))
+        image.load()
+    except (UnidentifiedImageError, OSError, Image.DecompressionBombError) as e:
+        raise HTTPException(400, f"Could not decode image: {type(e).__name__}") from e
+    return image
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Load the model and nutrition table once at startup."""
@@ -50,6 +79,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     if missing := app.state.nutrition.missing(app.state.classifier.class_names):
         log.warning("No nutrition entry for: %s", missing)
     log.info("Loaded %s (%d classes)", path, len(app.state.classifier.class_names))
+    det_path = os.environ.get("FOOD_VISION_DETECTOR", "models/yolo11n.onnx")
+    app.state.detector = OnnxYoloDetector(det_path, threads=threads) if os.path.exists(det_path) else None
+    log.info("Detector: %s", det_path if app.state.detector else f"not found at {det_path}; /detect disabled")
     yield
 
 
@@ -91,31 +123,58 @@ def predict(  # sync: FastAPI runs it in a worker thread, so CPU inference doesn
     table: NutritionTable = request.app.state.nutrition
     max_bytes: int = request.app.state.max_bytes
 
-    if file.content_type and file.content_type.lower() not in ALLOWED_TYPES:
-        raise HTTPException(415, f"Unsupported content type {file.content_type!r}; upload an image")
-    data = file.file.read(max_bytes + 1)
-    if not data:
-        raise HTTPException(400, "Empty upload")
-    if len(data) > max_bytes:
-        raise HTTPException(413, f"File larger than {max_bytes // (1024 * 1024)} MB")
-    try:
-        image = Image.open(io.BytesIO(data))
-        image.load()
-    except (UnidentifiedImageError, OSError, Image.DecompressionBombError) as e:
-        raise HTTPException(400, f"Could not decode image: {type(e).__name__}") from e
+    image = _read_image(file, max_bytes)
 
     t0 = time.perf_counter()
     top = clf.predict(image, top_k=min(top_k, len(clf.class_names)))
     elapsed = (time.perf_counter() - t0) * 1000
 
     return PredictResponse(
-        predictions=[
-            Prediction(rank=i + 1, label=label, display_name=display_name(label),
-                       confidence=round(p, 6), nutrition=_nutrition(table, label))
-            for i, (label, p) in enumerate(top)
-        ],
+        predictions=_predictions(top, table),
         nutrition_disclaimer=table.disclaimer,
         nutrition_units=table.units,
+        model=clf.model_name,
+        inference_ms=round(elapsed, 2),
+    )
+
+
+@app.post("/detect", response_model=DetectResponse)
+def detect(  # sync, like /predict: CPU inference runs in FastAPI's worker threads
+    request: Request,
+    file: UploadFile = File(..., description="A photo that may contain several dishes"),
+    top_k: int = Query(3, ge=1, le=10, description="Dishes returned per detected region"),
+    conf: float = Query(0.25, ge=0.01, le=0.99, description="Detector confidence threshold"),
+) -> DetectResponse:
+    """Find food regions with YOLO and classify each one; falls back to the whole image if none."""
+    detector: OnnxYoloDetector | None = request.app.state.detector
+    if detector is None:
+        raise HTTPException(503, "Detector not loaded: export it with scripts/export_yolo.py "
+                                 "(or set FOOD_VISION_DETECTOR)")
+    clf: OnnxClassifier = request.app.state.classifier
+    table: NutritionTable = request.app.state.nutrition
+    image = _read_image(file, request.app.state.max_bytes)
+
+    t0 = time.perf_counter()
+    dishes = detect_and_classify(image, detector, clf, top_k=min(top_k, len(clf.class_names)), conf=conf)
+    elapsed = (time.perf_counter() - t0) * 1000
+
+    return DetectResponse(
+        dishes=[
+            DetectedDish(
+                box=Box(x1=round(d.box[0], 1), y1=round(d.box[1], 1), x2=round(d.box[2], 1), y2=round(d.box[3], 1)),
+                source="detection" if d.detection else "whole_image",
+                detector_label=d.detection.label if d.detection else None,
+                detector_confidence=round(d.detection.score, 6) if d.detection else None,
+                predictions=_predictions(d.predictions, table),
+            )
+            for d in dishes
+        ],
+        num_detections=sum(d.detection is not None for d in dishes),
+        image_width=image.width,
+        image_height=image.height,
+        nutrition_disclaimer=table.disclaimer,
+        nutrition_units=table.units,
+        detector=detector.model_name,
         model=clf.model_name,
         inference_ms=round(elapsed, 2),
     )
