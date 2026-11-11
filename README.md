@@ -168,7 +168,7 @@ Food-101 has no bounding boxes, so there is no data here to train or evaluate a 
 * **No accuracy measurement:** there is no detection mAP or per-dish accuracy, because no box-labelled food data is available.
 * **Coarse proposals:** COCO food classes are coarse (a samosa is proposed as a `sandwich`).
 * **Closed-set classifier:** it always picks one of its 20 dishes, even for a crop of a side dish or sauce bowl.
-* **Licence:** Ultralytics and its pretrained weights are **AGPL-3.0**. They are used only at export time, but the exported model is derived from them, so check the licence before any commercial use.
+* **Licence:** Ultralytics and its pretrained weights are **AGPL-3.0**. They are used only at export time, but the exported model is derived from them, which is why this repository is AGPL-3.0 too (see [Licence](#licence)).
 
 ## Nutrition
 
@@ -275,6 +275,17 @@ notebooks/                  results walkthrough, Colab training
 ## Acknowledgements
 
 * **Dataset:** Food-101 (Bossard, Guillaumin & Van Gool, ECCV 2014).
-* **Pretrained weights:** torchvision, timm (ViT AugReg) and OpenCLIP (LAION-2B).
+* **Pretrained weights:** torchvision, timm (ViT AugReg), OpenCLIP (LAION-2B) and Ultralytics YOLO11n (COCO).
 * **Methods:** Grad-CAM (Selvaraju et al., 2017), attention rollout (Abnar & Zuidema, 2020), and the artifact-token analysis follows Darcet et al. (2023).
 
+## Licence
+
+This project is licensed under the **GNU Affero General Public License v3.0**. The full text is in [LICENSE](LICENSE).
+
+**Why AGPL-3.0:** the multi-food detector (`models/yolo11n.onnx`, served by `/detect`) is exported from Ultralytics' YOLO11n weights. Those weights, and the Ultralytics code used by `scripts/export_yolo.py`, are AGPL-3.0, so the served detector is a derivative work. Licensing the whole repository under the same terms keeps it consistent.
+
+**What this means in practice:**
+
+* **Network use counts as distribution:** if you run a modified version of this service for other people over a network, AGPL-3.0 requires you to offer them its source code.
+* **Avoiding AGPL obligations:** build the Docker image without the detector. `/predict` then still works and `/detect` returns 503. Alternatively, swap in a permissively licensed detector (e.g. RT-DETR or a torchvision detector), or obtain an Ultralytics Enterprise licence.
+* **Third-party components:** Food-101 and the other pretrained weights (torchvision, timm, OpenCLIP) keep their own licences and terms.
