@@ -98,7 +98,8 @@ def nms(boxes: np.ndarray, scores: np.ndarray, iou_thr: float) -> np.ndarray:
     return np.array(keep, dtype=np.int64)
 
 
-def decode(output: np.ndarray, conf: float, iou: float, max_det: int = 300) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+def decode(output: np.ndarray, conf: float, iou: float,
+           max_det: int = 300) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Raw YOLO output (1, 4 + nc, anchors) -> (xyxy boxes, scores, class ids) after class-aware NMS.
 
     Boxes are in letterboxed input pixels. Mirrors Ultralytics' non_max_suppression with

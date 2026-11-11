@@ -153,6 +153,18 @@ def test_detect_endpoint(client) -> None:
     assert body["detector"] == "tiny-test-detector" and "approximate" in body["nutrition_disclaimer"].lower()
 
 
+def test_detect_applies_exif_orientation(client) -> None:
+    """A phone photo stored sideways (EXIF orientation 6) is rotated upright before inference."""
+    img = Image.open(io.BytesIO(jpeg_bytes((128, 64))))
+    exif = Image.Exif()
+    exif[0x0112] = 6  # rotate 90 degrees clockwise to display
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", exif=exif)
+    body = client.post("/detect?conf=0.95", files=_upload(buf.getvalue())).json()
+    assert (body["image_width"], body["image_height"]) == (64, 128)
+    assert body["dishes"][0]["box"] == {"x1": 0.0, "y1": 0.0, "x2": 64.0, "y2": 128.0}
+
+
 def test_detect_endpoint_params_and_fallback(client) -> None:
     two = client.post("/detect?conf=0.05&top_k=1", files=_upload(jpeg_bytes((128, 64)))).json()
     assert [d["detector_label"] for d in two["dishes"]] == ["bowl", "pizza"]
