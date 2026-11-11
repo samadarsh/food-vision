@@ -57,7 +57,7 @@
 | **Deployed model** | ViT-S/16 → ONNX (100% top-1 agreement with PyTorch on the 2,000 test images) |
 | **Multi-food detection** | YOLO11n (COCO) food regions → each crop classified by the ViT (`POST /detect`) |
 | **Serving** | FastAPI, Docker, ONNX Runtime, no PyTorch in the image |
-| **Quality** | 94 pytest tests run in CI (pytest + ruff), split leakage checks, McNemar significance tests, mutation-checked parity tests |
+| **Quality** | 107 pytest tests run in CI (pytest + ruff), split leakage checks, McNemar significance tests, mutation-checked parity tests |
 
 **What makes it more than a notebook:**
 
@@ -71,7 +71,7 @@
 git clone https://github.com/samadarsh/food-vision.git && cd food-vision
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt && pip install -e .
-pytest                                     # 94 tests in seconds, no dataset or trained model needed
+pytest                                     # 107 tests in seconds, no dataset or trained model needed
 python scripts/download_models.py          # exported ONNX models from the GitHub release -> models/
 ```
 
@@ -117,6 +117,7 @@ python scripts/detect.py my_lunch.jpg                   # same pipeline from the
                    "protein": 8.0, "carbs": 48.0, "fat": 26.0}},
     ...
   ],
+  "confident": true,
   "nutrition_disclaimer": "APPROXIMATE reference values for one typical serving, ...",
   "model": "vit_small_patch16_224.augreg_in21k_ft_in1k",
   "inference_ms": 53.2
@@ -129,10 +130,20 @@ python scripts/detect.py my_lunch.jpg                   # same pipeline from the
 |---|---|
 | `GET /health` | status, model name, number of classes |
 | `GET /classes` | every class with display name and nutrition |
-| `POST /predict` | top-k dishes with confidence and nutrition |
-| `POST /detect` | per dish: box (original-image pixels), detector's COCO label and score, classifier top-k with nutrition |
+| `POST /predict` | top-k dishes with confidence and nutrition, plus a `confident` flag |
+| `POST /detect` | per dish: box (original-image pixels), detector's COCO label and score, classifier top-k with nutrition, and its own `confident` flag |
 
 **Error codes:** 400 (unreadable image), 413 (too large), 415 (wrong type), 422 (bad `top_k` / `conf`), 503 (`/detect` without a detector).
+
+**Confidence floor (`confident`).** The classifier always answers with one of its 20 dishes, even for a photo of a bus. So every result carries a boolean `confident`: true when the top-1 probability is at least `FOOD_VISION_MIN_CONFIDENCE` (environment variable, default `0.5`, must be between 0 and 1). `/predict` has one flag for the image; `/detect` has one per dish. Treat `confident: false` as "probably not one of the 20 dishes": a non-food photo, an unknown dish, or a side dish or garnish crop.
+
+* **Cost on real food:** with the default floor, 70 of the 2,000 test images fall below it (23 of them correctly classified), computed from the recorded `runs/vit/test_predictions.npz`.
+* **It is a heuristic, not a food detector:** softmax confidence can be high on things the model has never seen, so dishes outside the 20 classes often still pass. Raise the floor to be stricter.
+
+```bash
+FOOD_VISION_MIN_CONFIDENCE=0.7 uvicorn food_vision.api.app:app --port 8000
+docker run --rm -p 8000:8000 -e FOOD_VISION_MIN_CONFIDENCE=0.7 food-vision
+```
 
 The Docker image includes the detector when `models/yolo11n.onnx` exists at build time (`--build-arg DETECTOR=...` selects another file). Otherwise `/detect` returns 503, and everything else works as before.
 
@@ -250,7 +261,7 @@ Food-101 has no bounding boxes, so there is no data here to train or evaluate a 
 
 * **No accuracy measurement:** there is no detection mAP or per-dish accuracy, because no box-labelled food data is available.
 * **Coarse proposals:** COCO food classes are coarse (a samosa is proposed as a `sandwich`).
-* **Closed-set classifier:** it always picks one of its 20 dishes, even for a crop of a side dish or sauce bowl (the 39% "samosa" bowl in the image at the top).
+* **Closed-set classifier:** it always picks one of its 20 dishes, even for a crop of a side dish or sauce bowl (the 39% "samosa" bowl in the image at the top). The API marks such low-confidence results with `confident: false` (see [API](#api)).
 * **Licence:** Ultralytics and its pretrained weights are **AGPL-3.0**. They are used only at export time, but the exported model is derived from them, which is why this repository is AGPL-3.0 too (see [Licence](#licence)).
 
 ## Nutrition
@@ -274,7 +285,7 @@ python scripts/explain.py                 # → reports/explain/
 python scripts/export_onnx.py --model vit # → models/vit.onnx + verification report
 python scripts/benchmark.py               # → reports/deploy/benchmark.md
 python scripts/export_yolo.py             # → models/yolo11n.onnx + reports/deploy/yolo_verify.json (optional)
-pytest                                    # 94 tests, no dataset needed
+pytest                                    # 107 tests, no dataset needed
 ```
 
 * **Device:** chosen automatically: Apple MPS, then CUDA, then CPU.

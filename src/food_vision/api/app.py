@@ -8,6 +8,8 @@ Environment variables:
     FOOD_VISION_THREADS       ONNX Runtime intra-op threads (default: runtime decides)
     FOOD_VISION_DETECTOR      YOLO ONNX file from scripts/export_yolo.py (default models/yolo11n.onnx);
                               optional: if missing, POST /detect returns 503 and /predict is unaffected
+    FOOD_VISION_MIN_CONFIDENCE top-1 probability below which a result is flagged `confident: false`
+                              (default 0.5); flags non-food photos and dishes outside the classes
 """
 
 from __future__ import annotations
@@ -51,6 +53,23 @@ def _predictions(top: list[tuple[str, float]], table: NutritionTable) -> list[Pr
             for i, (label, p) in enumerate(top)]
 
 
+def _min_confidence() -> float:
+    """Confidence floor from FOOD_VISION_MIN_CONFIDENCE (default 0.5); must be a probability."""
+    raw = os.environ.get("FOOD_VISION_MIN_CONFIDENCE") or "0.5"  # unset or empty -> default
+    try:
+        value = float(raw)
+    except ValueError:
+        value = float("nan")
+    if not 0.0 <= value <= 1.0:  # also rejects NaN
+        raise ValueError(f"FOOD_VISION_MIN_CONFIDENCE must be a number between 0 and 1, got {raw!r}")
+    return value
+
+
+def is_confident(top: list[tuple[str, float]], min_confidence: float) -> bool:
+    """True when the top-1 probability reaches the confidence floor."""
+    return bool(top) and top[0][1] >= min_confidence
+
+
 def _read_image(file: UploadFile, max_bytes: int) -> Image.Image:
     """Validate an upload (type, size, decodability) and return the decoded image."""
     if file.content_type and file.content_type.lower() not in ALLOWED_TYPES:
@@ -79,6 +98,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.classifier = OnnxClassifier(path, threads=threads)
     app.state.nutrition = default_nutrition()
     app.state.max_bytes = int(float(os.environ.get("FOOD_VISION_MAX_UPLOAD_MB", "10")) * 1024 * 1024)
+    app.state.min_confidence = _min_confidence()
     if missing := app.state.nutrition.missing(app.state.classifier.class_names):
         log.warning("No nutrition entry for: %s", missing)
     log.info("Loaded %s (%d classes)", path, len(app.state.classifier.class_names))
@@ -134,6 +154,7 @@ def predict(  # sync: FastAPI runs it in a worker thread, so CPU inference doesn
 
     return PredictResponse(
         predictions=_predictions(top, table),
+        confident=is_confident(top, request.app.state.min_confidence),
         nutrition_disclaimer=table.disclaimer,
         nutrition_units=table.units,
         model=clf.model_name,
@@ -169,6 +190,7 @@ def detect(  # sync, like /predict: CPU inference runs in FastAPI's worker threa
                 detector_label=d.detection.label if d.detection else None,
                 detector_confidence=round(d.detection.score, 6) if d.detection else None,
                 predictions=_predictions(d.predictions, table),
+                confident=is_confident(d.predictions, request.app.state.min_confidence),
             )
             for d in dishes
         ],
