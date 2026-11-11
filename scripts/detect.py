@@ -13,7 +13,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageOps
 
 from food_vision.detection import OnnxYoloDetector, detect_and_classify, draw_dishes
 from food_vision.inference import OnnxClassifier
@@ -35,7 +35,7 @@ def main() -> None:
     args.out.mkdir(parents=True, exist_ok=True)
     for path in args.images:
         with Image.open(path) as im:
-            image = im.convert("RGB")
+            image = ImageOps.exif_transpose(im).convert("RGB")  # honour phone-photo rotation
         dishes = detect_and_classify(image, detector, classifier, top_k=args.top_k, conf=args.conf)
         out = args.out / f"{path.stem}_detected.jpg"
         draw_dishes(image, dishes).save(out, quality=90)

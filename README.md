@@ -9,7 +9,7 @@
 [![ONNX Runtime](https://img.shields.io/badge/ONNX%20Runtime-serving-005CED?logo=onnx&logoColor=white)](https://onnxruntime.ai)
 [![FastAPI](https://img.shields.io/badge/FastAPI-API-009688?logo=fastapi&logoColor=white)](#api)
 [![Docker](https://img.shields.io/badge/Docker-no%20PyTorch-2496ED?logo=docker&logoColor=white)](#api)
-[![Tests](https://img.shields.io/badge/pytest-93%20tests-0A9EDC?logo=pytest&logoColor=white)](tests)
+[![CI](https://github.com/samadarsh/food-vision/actions/workflows/ci.yml/badge.svg)](https://github.com/samadarsh/food-vision/actions/workflows/ci.yml)
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](#licence)
 [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/samadarsh/food-vision/blob/main/notebooks/colab_train.ipynb)
 
@@ -57,7 +57,7 @@
 | **Deployed model** | ViT-S/16 → ONNX (100% top-1 agreement with PyTorch on the 2,000 test images) |
 | **Multi-food detection** | YOLO11n (COCO) food regions → each crop classified by the ViT (`POST /detect`) |
 | **Serving** | FastAPI, Docker, ONNX Runtime, no PyTorch in the image |
-| **Quality** | 93 pytest tests, split leakage checks, McNemar significance tests, mutation-checked parity tests |
+| **Quality** | 94 pytest tests run in CI (pytest + ruff), split leakage checks, McNemar significance tests, mutation-checked parity tests |
 
 **What makes it more than a notebook:**
 
@@ -71,10 +71,11 @@
 git clone https://github.com/samadarsh/food-vision.git && cd food-vision
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt && pip install -e .
-pytest                                     # 93 tests in seconds, no dataset or trained model needed
+pytest                                     # 94 tests in seconds, no dataset or trained model needed
+python scripts/download_models.py          # exported ONNX models from the GitHub release -> models/
 ```
 
-Trained weights and ONNX files are not committed. To produce `models/vit.onnx` and `models/yolo11n.onnx`, run the pipeline in [Reproduce everything](#reproduce-everything). Fine-tuning both models took about 30 minutes in total on an Apple Silicon Mac (17.5 + 12.2 min, excluding the dataset download); [Colab](notebooks/colab_train.ipynb) works if you have no local GPU.
+The exported models (`models/vit.onnx`, `models/yolo11n.onnx`) are not committed; `scripts/download_models.py` fetches them from the [latest release](https://github.com/samadarsh/food-vision/releases). To train and export them yourself, run the pipeline in [Reproduce everything](#reproduce-everything). Fine-tuning both models took about 30 minutes in total on an Apple Silicon Mac (17.5 + 12.2 min, excluding the dataset download); [Colab](notebooks/colab_train.ipynb) works if you have no local GPU.
 
 ### Use from Python
 
@@ -273,7 +274,7 @@ python scripts/explain.py                 # → reports/explain/
 python scripts/export_onnx.py --model vit # → models/vit.onnx + verification report
 python scripts/benchmark.py               # → reports/deploy/benchmark.md
 python scripts/export_yolo.py             # → models/yolo11n.onnx + reports/deploy/yolo_verify.json (optional)
-pytest                                    # 93 tests, no dataset needed
+pytest                                    # 94 tests, no dataset needed
 ```
 
 * **Device:** chosen automatically: Apple MPS, then CUDA, then CPU.
@@ -309,7 +310,7 @@ flowchart LR
     end
 ```
 
-**Request path:** `POST /predict` (image) → decode + validate → resize and center-crop (NumPy/PIL, identical to torchvision, unit-tested) → ONNX Runtime → softmax top-k → nutrition lookup → JSON. `POST /detect` runs YOLO first, then the same classifier path once per food region.
+**Request path:** `POST /predict` (image) → decode + validate → apply EXIF orientation → resize and center-crop (NumPy/PIL, identical to torchvision, unit-tested) → ONNX Runtime → softmax top-k → nutrition lookup → JSON. `POST /detect` runs YOLO first, then the same classifier path once per food region.
 
 ## Project structure
 
@@ -361,8 +362,6 @@ notebooks/                  results walkthrough, Colab training
 This project is a rebuild of my final-year project and its published paper:
 
 > **An Integrated Framework for Food Recognition, Nutritional Insights, and Meal Recording.**
-> <!-- TODO(author): add authors, venue, year and DOI/link -->
-> _Authors, venue, year and link: to be added._
 
 The original work combined food recognition, nutrition lookup and meal recording. This version rebuilds the recognition and nutrition parts as an engineering-grade pipeline:
 

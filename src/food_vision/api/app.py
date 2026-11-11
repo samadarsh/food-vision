@@ -21,7 +21,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, File, HTTPException, Query, Request, UploadFile
 from fastapi.responses import RedirectResponse
-from PIL import Image, UnidentifiedImageError
+from PIL import Image, ImageOps, UnidentifiedImageError
 
 from food_vision.api.schemas import (
     Box, ClassInfo, DetectedDish, DetectResponse, HealthResponse, NutritionOut, Prediction, PredictResponse,
@@ -63,6 +63,9 @@ def _read_image(file: UploadFile, max_bytes: int) -> Image.Image:
     try:
         image = Image.open(io.BytesIO(data))
         image.load()
+        # Phone photos store rotation in EXIF; apply it so the model sees the photo upright
+        # and /detect boxes are in the coordinates the user sees.
+        image = ImageOps.exif_transpose(image)
     except (UnidentifiedImageError, OSError, Image.DecompressionBombError) as e:
         raise HTTPException(400, f"Could not decode image: {type(e).__name__}") from e
     return image

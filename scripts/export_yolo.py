@@ -122,7 +122,8 @@ def main() -> None:
         comparisons[key] = {
             "reference_detections": st["reference_detections"], "onnx_detections": st["onnx_detections"],
             "matched": st["matched"],
-            "match_rate_vs_reference": st["matched"] / st["reference_detections"] if st["reference_detections"] else 1.0,
+            "match_rate_vs_reference": (st["matched"] / st["reference_detections"]
+                                        if st["reference_detections"] else 1.0),
             "match_rate_vs_onnx": st["matched"] / st["onnx_detections"] if st["onnx_detections"] else 1.0,
             "mean_iou_matched": float(np.mean(st["ious"])) if st["ious"] else None,
             "max_abs_score_diff_matched": float(np.max(st["diffs"])) if st["diffs"] else None,

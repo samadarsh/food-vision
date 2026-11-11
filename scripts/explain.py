@@ -22,7 +22,6 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
-import torch  # noqa: E402
 
 from food_vision.config import DEFAULT_CONFIG, load_config  # noqa: E402
 from food_vision.data import FoodDataset, build_transforms, food101_dir, get_splits  # noqa: E402
