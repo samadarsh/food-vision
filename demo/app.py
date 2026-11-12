@@ -48,6 +48,16 @@ def fetch(name: str) -> Path:
     return dest
 
 
+try:  # Hugging Face ZeroGPU hardware only: it refuses to start an app with no @spaces.GPU function.
+    import spaces
+except ImportError:  # local runs and CPU hardware
+    spaces = None
+else:
+    @spaces.GPU
+    def _zerogpu_startup_check() -> None:
+        """No-op: inference runs on CPU with ONNX Runtime, so nothing needs the GPU."""
+
+
 CLASSIFIER = OnnxClassifier(fetch("vit.onnx"))
 DETECTOR = OnnxYoloDetector(fetch("yolo11n.onnx"))
 NUTRITION = default_nutrition()
