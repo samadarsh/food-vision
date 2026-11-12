@@ -97,7 +97,9 @@ with gr.Blocks(title="food-vision") as demo:
                              info="Lower finds more regions; higher keeps only the clearest ones.")
             run = gr.Button("Analyse", variant="primary")
         with gr.Column():
-            annotated = gr.Image(type="pil", label="Detected dishes", interactive=False)
+            # No floating label: Gradio draws it over the top-left corner, where it hides the dish label
+            # that draw_dishes puts on a box starting at the image edge (always the case for the fallback).
+            annotated = gr.Image(type="pil", label="Detected dishes", show_label=False, interactive=False)
     table = gr.Dataframe(headers=HEADERS, label="Dishes (nutrition is approximate, per typical serving)",
                          interactive=False, wrap=True)
     summary = gr.Markdown()
