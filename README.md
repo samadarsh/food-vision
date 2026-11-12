@@ -4,6 +4,7 @@
 
 **Food recognition with nutritional insights: a fine-tuned CNN vs a fine-tuned ViT vs zero-shot CLIP on Food-101, plus multi-dish detection, served as a torch-free ONNX + FastAPI service.**
 
+[![Live demo](https://img.shields.io/badge/%F0%9F%A4%97%20Live%20demo-Hugging%20Face%20Space-FFD21E)](https://huggingface.co/spaces/samadarsh/food-vision)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)](pyproject.toml)
 [![PyTorch](https://img.shields.io/badge/PyTorch-training-EE4C2C?logo=pytorch&logoColor=white)](https://pytorch.org)
 [![ONNX Runtime](https://img.shields.io/badge/ONNX%20Runtime-serving-005CED?logo=onnx&logoColor=white)](https://onnxruntime.ai)
@@ -13,7 +14,7 @@
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](#licence)
 [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/samadarsh/food-vision/blob/main/notebooks/colab_train.ipynb)
 
-[**Results**](#results) · [**Quick start**](#quick-start) · [**API**](#api) · [**Multi-food detection**](#multi-food-detection-yolo) · [**Results notebook**](notebooks/results_walkthrough.ipynb) · [**Background**](#background)
+[**Live demo**](https://huggingface.co/spaces/samadarsh/food-vision) · [**Results**](#results) · [**Quick start**](#quick-start) · [**API**](#api) · [**Multi-food detection**](#multi-food-detection-yolo) · [**Results notebook**](notebooks/results_walkthrough.ipynb) · [**Background**](#background)
 
 <img src="reports/detect/3661763_detected.jpg" width="40%" alt="Two samosas detected and classified separately">
 <img src="reports/detect/1023857_detected.jpg" width="40%" alt="Filet mignon classified from the whole image">
